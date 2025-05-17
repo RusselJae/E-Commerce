@@ -1,0 +1,189 @@
+{% extends 'admin/admin_base.html' %}
+{% load custom_filters %}
+{% load static %}
+{% block content %}
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1 class="m-0">Orders</h1>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="content">
+    <div class="container-fluid">
+        <!-- Order Statistics -->
+        <div class="row mb-4">
+            <div class="col-lg-4">
+                <div class="small-box bg-info">
+                    <div class="inner">
+                        <h3>{{ total_orders }}</h3>
+                        <p>Total Orders Today</p>
+                    </div>
+                    <div class="icon">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="small-box bg-success">
+                    <div class="inner">
+                        <h3>${{ total_sales|floatformat:2 }}</h3>
+                        <p>Total Sales Today</p>
+                    </div>
+                    <div class="icon">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="small-box bg-warning">
+                    <div class="inner">
+                        <h3>{{ pending_orders }}</h3>
+                        <p>Pending Orders</p>
+                    </div>
+                    <div class="icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            {% for order in page_obj %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Order #{{ order.id }}</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <strong>Customer:</strong> {{ order.user.get_full_name|default:order.user.username }}
+                        </div>
+                        <div class="mb-2">
+                            <strong>Date:</strong> {{ order.created_at|date:"M d, Y H:i" }}
+                        </div>
+                        <div class="mb-2">
+                            <strong>Items:</strong> {{ order.items.count }}
+                        </div>
+                        <div class="mb-2">
+                            <strong>Total:</strong> ${{ order.total_amount }}
+                        </div>
+                        <div class="mb-3">
+                            <strong>Status:</strong>
+                            <span class="badge {% if order.status == 'delivered' %}bg-success
+                                {% elif order.status == 'pending' %}bg-warning
+                                {% elif order.status == 'cancelled' %}bg-danger
+                                {% else %}bg-info{% endif %}">
+                                {{ order.get_status_display }}
+                            </span>
+                        </div>
+                        <button type="button" class="btn btn-info btn-block" data-toggle="modal" data-target="#orderModal{{ order.id }}">
+                            <i class="fas fa-eye"></i> View Details
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Details Modal -->
+            <div class="modal fade" id="orderModal{{ order.id }}" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Order #{{ order.id }} Details</h5>
+                            <button type="button" class="close" data-dismiss="modal">
+                                <span>&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <h6>Customer Information</h6>
+                                    <p>Name: {{ order.first_name }} {{ order.last_name }}<br>
+                                       Email: {{ order.user.email }}<br>
+                                       Address: {{ order.address }}<br>
+                                       {{ order.city }}, {{ order.state }} {{ order.zip_code }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Order Information</h6>
+                                    <p>Date: {{ order.created_at|date:"M d, Y H:i" }}<br>
+                                       Status: {{ order.get_status_display }}<br>
+                                       Payment ID: {{ order.payment_id }}<br>
+                                       Payment Method: {{ order.payment_method|title }}</p>
+                                </div>
+                            </div>
+                            <h6>Order Items</h6>
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Product</th>
+                                            <th>Price</th>
+                                            <th>Quantity</th>
+                                            <th>Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for item in order.items.all %}
+                                        <tr>
+                                            <td>{{ item.product.name }}</td>
+                                            <td>${{ item.price }}</td>
+                                            <td>{{ item.quantity }}</td>
+                                            <td>${{ item.get_total }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                    <tfoot>
+                                        <tr>
+                                            <td colspan="3" class="text-end"><strong>Total Amount:</strong></td>
+                                            <td><strong>${{ order.total_amount }}</strong></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        <div class="d-flex justify-content-center mt-4">
+            <ul class="pagination">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1">&laquo; First</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                    </li>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last &raquo;</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

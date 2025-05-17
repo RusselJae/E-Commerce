@@ -1,0 +1,250 @@
+{% extends 'base.html' %}
+
+{% load static %}
+{% load custom_filters %}
+
+
+{% block title %}Products - Fashion Store{% endblock %}
+
+{% block content %}
+<div class="container" style="margin-top: 6rem;">
+    <div class="d-flex align-items-center mb-4">
+        <i class="fas fa-store text-primary me-3" style="font-size: 2.5rem;"></i>
+        <h1>Our Products</h1>
+    </div>
+    
+    <!-- Filters -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Filters</h5>
+                    <form method="get">
+                        <div class="mb-3">
+                            <label class="form-label">Category</label>
+                            <select class="form-select" name="category">
+                                {% for value, label in categories %}
+                                <option value="{{ value }}" {% if value == selected_category %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Clothing Type</label>
+                            <select class="form-select" name="clothing_type">
+                                {% for value, label in clothing_types %}
+                                <option value="{{ value }}" {% if value == selected_clothing_type %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Price Range</label>
+                            <select class="form-select" name="price_range">
+                                {% for value, label in price_ranges %}
+                                <option value="{{ value }}" {% if value == selected_price_range %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Product Grid -->
+        <div class="col-md-9">
+            <div class="row">
+                {% if products %}
+                    {% for product in products %}
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100">
+                            <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}">
+                            <div class="card-body d-flex flex-column">
+                                <h5 class="card-title">{{ product.name }}</h5>
+                                <p class="card-text">
+                                    <span class="badge bg-secondary">{{ product.get_category_display }}</span>
+                                </p>
+                                <p class="card-text text-truncate">{{ product.description }}</p>
+                                <p class="card-text">${{ product.price }}</p>
+                                <p class="card-text {% if product.stock < 10 %}text-danger{% endif %}">
+                                    {% if product.stock > 0 %}
+                                        {{ product.stock }} pieces left
+                                    {% else %}
+                                        <span class="text-danger">Out of stock</span>
+                                    {% endif %}
+                                </p>
+                                <div class="mt-auto">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <label class="me-2">Quantity:</label>
+                                        <input type="number" 
+                                               class="form-control form-control-sm quantity-input" 
+                                               value="1" 
+                                               min="1" 
+                                               max="{{ product.stock }}"
+                                               style="width: 70px;"
+                                               data-product-id="{{ product.id }}">
+                                    </div>
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-primary add-to-cart" 
+                                                data-product-id="{{ product.id }}"
+                                                {% if product.stock == 0 %}disabled{% endif %}>
+                                            Add to Cart
+                                        </button>
+                                        <button class="btn btn-success buy-now" 
+                                                data-product-id="{{ product.id }}"
+                                                {% if product.stock == 0 %}disabled{% endif %}>
+                                            Buy Now
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            No products available at the moment.
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Pagination -->
+            {% if products.has_other_pages %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if products.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_clothing_type %}&clothing_type={{ selected_clothing_type }}{% endif %}{% if selected_price_range %}&price_range={{ selected_price_range }}{% endif %}">&laquo; First</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ products.previous_page_number }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_clothing_type %}&clothing_type={{ selected_clothing_type }}{% endif %}{% if selected_price_range %}&price_range={{ selected_price_range }}{% endif %}">Previous</a>
+                        </li>
+                    {% endif %}
+
+                    {% for num in products.paginator.page_range %}
+                        {% if products.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% elif num > products.number|add:'-3' and num < products.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_clothing_type %}&clothing_type={{ selected_clothing_type }}{% endif %}{% if selected_price_range %}&price_range={{ selected_price_range }}{% endif %}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if products.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ products.next_page_number }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_clothing_type %}&clothing_type={{ selected_clothing_type }}{% endif %}{% if selected_price_range %}&price_range={{ selected_price_range }}{% endif %}">Next</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ products.paginator.num_pages }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_clothing_type %}&clothing_type={{ selected_clothing_type }}{% endif %}{% if selected_price_range %}&price_range={{ selected_price_range }}{% endif %}">Last &raquo;</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('.add-to-cart').forEach(button => {
+    button.addEventListener('click', function(e) {
+        e.preventDefault();
+        const productId = this.dataset.productId;
+        const quantityInput = document.querySelector(`.quantity-input[data-product-id="${productId}"]`);
+        const quantity = parseInt(quantityInput.value);
+        
+        if (quantity < 1) {
+            alert('Please select a valid quantity');
+            return;
+        }
+
+        fetch(`/add-to-cart/${productId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                quantity: quantity
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Product added to cart successfully!');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error adding product to cart');
+        });
+    });
+});
+
+// Buy Now functionality
+document.querySelectorAll('.buy-now').forEach(button => {
+    button.addEventListener('click', function(e) {
+        e.preventDefault();
+        const productId = this.dataset.productId;
+        const quantityInput = document.querySelector(`.quantity-input[data-product-id="${productId}"]`);
+        const quantity = parseInt(quantityInput.value);
+        
+        if (quantity < 1) {
+            alert('Please select a valid quantity');
+            return;
+        }
+
+        // Add to cart then redirect to checkout
+        fetch(`/add-to-cart/${productId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                quantity: quantity
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.href = '{% url "checkout" %}';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error processing your request');
+        });
+    });
+});
+
+// Validate quantity input
+document.querySelectorAll('.quantity-input').forEach(input => {
+    input.addEventListener('change', function() {
+        const max = parseInt(this.getAttribute('max'));
+        const value = parseInt(this.value);
+        
+        if (value > max) {
+            this.value = max;
+            alert('Cannot exceed available stock');
+        } else if (value < 1) {
+            this.value = 1;
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,95 @@
+{% extends 'admin/admin_base.html' %}
+{% load static %}
+{% block content %}
+<div class="content-header">
+    <div class="container-fluid">
+        <h1 class="m-0">Dashboard</h1>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <!-- Info boxes -->
+        <div class="row">
+            <div class="col-lg-3">
+                <div class="info-box bg-info">
+                    <span class="info-box-icon"><i class="fas fa-tshirt"></i></span>
+                    <div class="info-box-content">
+                        <span class="info-box-text">Total Products</span>
+                        <span class="info-box-number">{{ product_count }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3">
+                <div class="info-box bg-success">
+                    <span class="info-box-icon"><i class="fas fa-users"></i></span>
+                    <div class="info-box-content">
+                        <span class="info-box-text">Total Users</span>
+                        <span class="info-box-number">{{ user_count }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3">
+                <div class="info-box bg-warning">
+                    <span class="info-box-icon"><i class="fas fa-shopping-cart"></i></span>
+                    <div class="info-box-content">
+                        <span class="info-box-text">Total Orders</span>
+                        <span class="info-box-number">{{ order_count }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3">
+                <div class="info-box bg-danger">
+                    <span class="info-box-icon"><i class="fas fa-dollar-sign"></i></span>
+                    <div class="info-box-content">
+                        <span class="info-box-text">Total Sales</span>
+                        <span class="info-box-number">${{ total_sales|floatformat:2 }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Recent Orders Section -->
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Recent Orders</h3>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Customer</th>
+                                    <th>Date</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in recent_orders %}
+                                <tr>
+                                    <td>#{{ order.id }}</td>
+                                    <td>{{ order.user.get_full_name|default:order.user.username }}</td>
+                                    <td>{{ order.created_at|date:"M d, Y" }}</td>
+                                    <td>${{ order.total_amount }}</td>
+                                    <td>
+                                        <span class="badge {% if order.status == 'delivered' %}bg-success
+                                    {% elif order.status == 'pending' %}bg-warning
+                                    {% elif order.status == 'cancelled' %}bg-danger
+                                    {% else %}bg-info{% endif %}">
+                                            {{ order.get_status_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
