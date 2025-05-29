@@ -7,19 +7,40 @@
 {% block title %}Products - Fashion Store{% endblock %}
 
 {% block content %}
-<div class="container" style="margin-top: 6rem;">
-    <div class="d-flex align-items-center mb-4">
-        <i class="fas fa-store text-primary me-3" style="font-size: 2.5rem;"></i>
-        <h1>Our Products</h1>
+<div class="container" style="margin-top: 4rem; margin-bottom: 10rem;">
+    <div class="d-flex align-items-center mb-2">
+        <i class="fas fa-store me-3" style="font-size: 2.5rem; color: #6a3ea1;"></i>
+        <h1 style="font-weight: 700;">Our Products</h1>
     </div>
+    <hr class="mb-4" style="border-color: #6a3ea1; opacity: 0.3;">
     
     <!-- Filters -->
-    <div class="row mb-4">
+    <div class="row">
+        <!-- Left Column - Search and Filters -->
         <div class="col-md-3">
+            <!-- Search Bar -->
+            <form method="get" class="d-flex mb-4">
+                <div class="input-group">
+                    <input type="text" 
+                           name="search" 
+                           class="form-control" 
+                           placeholder="Search products..." 
+                           value="{{ search_query|default:'' }}">
+                    <button class="btn btn-primary" type="submit">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </form>
+
+            <!-- Filter Card -->
             <div class="card">
                 <div class="card-body">
                     <h5 class="card-title">Filters</h5>
                     <form method="get">
+                        <!-- Preserve search query if exists -->
+                        {% if search_query %}
+                        <input type="hidden" name="search" value="{{ search_query }}">
+                        {% endif %}
                         <div class="mb-3">
                             <label class="form-label">Category</label>
                             <select class="form-select" name="category">
@@ -61,7 +82,7 @@
             <div class="row">
                 {% if products %}
                     {% for product in products %}
-                    <div class="col-md-4 mb-4">
+                    <div class="col-md-4 mb-4" data-product-id="{{ product.id }}">
                         <div class="card h-100">
                             <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}">
                             <div class="card-body d-flex flex-column">
@@ -92,12 +113,14 @@
                                     <div class="d-grid gap-2">
                                         <button class="btn btn-primary add-to-cart" 
                                                 data-product-id="{{ product.id }}"
-                                                {% if product.stock == 0 %}disabled{% endif %}>
+                                                {% if product.stock == 0 %}disabled{% endif %}
+                                                style="background-color: #d7cee6; border-color: #d7cee6; color: #472a6b;">
                                             Add to Cart
                                         </button>
-                                        <button class="btn btn-success buy-now" 
+                                        <button class="btn btn-primary buy-now" 
                                                 data-product-id="{{ product.id }}"
-                                                {% if product.stock == 0 %}disabled{% endif %}>
+                                                {% if product.stock == 0 %}disabled{% endif %}
+                                                >
                                             Buy Now
                                         </button>
                                     </div>
@@ -246,5 +269,30 @@ document.querySelectorAll('.quantity-input').forEach(input => {
         }
     });
 });
+
+// Create a function to handle product updates
+function handleProductUpdate() {
+    // Listen for product deletion events
+    window.addEventListener('productDeleted', function(event) {
+        const productId = event.detail.productId;
+        const productCard = document.querySelector(`.col-md-4[data-product-id="${productId}"]`);
+        if (productCard) {
+            productCard.remove();
+            
+            // Check if there are no more products
+            const productsContainer = document.querySelector('.row');
+            if (!productsContainer.querySelector('.col-md-4')) {
+                productsContainer.innerHTML = `
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            No products available at the moment.
+                        </div>
+                    </div>`;
+            }
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', handleProductUpdate);
 </script>
 {% endblock %}

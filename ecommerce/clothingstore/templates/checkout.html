@@ -6,12 +6,43 @@
 
 {% block content %}
 <div class="container py-5">
-    <div class="mb-4 d-flex align-items-center">
-        <i class="fas fa-shopping-cart me-2" style="font-size: 1.5rem;"></i>
-        <h2 class="mb-0">Checkout</h2>
+    <div class="d-flex align-items-center mb-2">
+        <i class="fas fa-credit-card me-3" style="font-size: 2.5rem; color: #6a3ea1;"></i>
+        <h1 style="font-weight: 700;">Checkout</h1>
     </div>
+    <hr class="mb-4" style="border-color: #6a3ea1; opacity: 0.3;">
 
     <div class="row">
+        <!-- Order Summary (Left Column) -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="mb-3">Order Summary</h4>
+                    {% for item in selected_items %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>{{ item.product.name }} × {{ item.quantity }}</span>
+                        <span>${{ item.get_total }}</span>
+                    </div>
+                    {% endfor %}
+                    <hr>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Subtotal</span>
+                        <span>${{ total_amount }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Shipping</span>
+                        <span>$0.00</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between mb-3">
+                        <strong>Total</strong>
+                        <strong>${{ total_amount }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Shipping Information (Right Column) -->
         <div class="col-md-8">
             <div class="card mb-4">
                 <div class="card-body">
@@ -46,34 +77,31 @@
                             <label class="form-label">ZIP Code</label>
                             <input type="text" name="zip_code" class="form-control" required>
                         </div>
-
+                        <hr>
                         <h3 class="mb-4">Payment Information</h3>
                         <div id="paypal-button-container"></div>
                     </form>
                 </div>
             </div>
         </div>
-
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body">
-                    <h4 class="mb-3">Order Summary</h4>
-                    {% for item in selected_items %}
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>{{ item.product.name }} × {{ item.quantity }}</span>
-                        <span>${{ item.get_total }}</span>
-                    </div>
-                    {% endfor %}
-                    <hr>
-                    <div class="d-flex justify-content-between mb-2">
-                        <strong>Total</strong>
-                        <strong>${{ total_amount }}</strong>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 </div>
+
+<style>
+    /* Add more spacing from navbar and footer */
+    .container.py-5 {
+        min-height: calc(100vh - 400px);
+        padding-top: 4rem !important;
+        padding-bottom: 10rem !important;
+        margin-bottom: 2rem;
+    }
+
+    /* Card styling */
+    .card {
+        border: none;
+        box-shadow: 0 0 15px rgba(0,0,0,0.05);
+    }
+</style>
 {% endblock %}
 
 {% block extra_js %}

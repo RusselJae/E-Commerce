@@ -393,7 +393,12 @@ def admin_dashboard(request):
         total=Sum('total_amount'))['total'] or 0
     recent_products = Product.objects.order_by('-id')[:5]
     recent_users = User.objects.order_by('-date_joined')[:5]
-    recent_orders = Order.objects.order_by('-created_at')[:5]
+    
+    # Add pagination for orders
+    orders = Order.objects.order_by('-created_at')
+    paginator = Paginator(orders, 10)  # Show 10 orders per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
     
     context = {
         'product_count': product_count,
@@ -402,14 +407,46 @@ def admin_dashboard(request):
         'total_sales': total_sales,
         'recent_products': recent_products,
         'recent_users': recent_users,
-        'recent_orders': recent_orders
+        'page_obj': page_obj
     }
     return render(request, 'admin/dashboard.html', context)
 
 @user_passes_test(is_admin)
 def admin_users(request):
-    users = User.objects.all().order_by('-date_joined')
-    return render(request, 'admin/users.html', {'users': users})
+    # Get all users
+    users_list = User.objects.all().order_by('-date_joined')
+    
+    # Get search and filter parameters
+    search_query = request.GET.get('search', '')
+    role_filter = request.GET.get('role', '')
+    
+    # Apply search filter
+    if search_query:
+        users_list = users_list.filter(
+            models.Q(username__icontains=search_query) |
+            models.Q(email__icontains=search_query) |
+            models.Q(first_name__icontains=search_query) |
+            models.Q(last_name__icontains=search_query)
+        )
+    
+    # Apply role filter
+    if role_filter:
+        if role_filter == 'admin':
+            users_list = users_list.filter(is_superuser=True)
+        elif role_filter == 'user':
+            users_list = users_list.filter(is_superuser=False)
+    
+    # Add pagination
+    paginator = Paginator(users_list, 10)  # Show 10 users per page
+    page = request.GET.get('page')
+    users = paginator.get_page(page)
+    
+    context = {
+        'users': users,
+        'search_query': search_query,
+        'role_filter': role_filter
+    }
+    return render(request, 'admin/users.html', context)
 
 @user_passes_test(is_admin)
 def admin_user_edit(request, pk):
@@ -424,6 +461,72 @@ def admin_user_edit(request, pk):
         user.save()
         return redirect('admin_users')
     return render(request, 'admin/user_form.html', {'edit_user': user})
+
+
+
+@user_passes_test(is_admin)
+def admin_user_create(request):
+    if request.method == 'POST':
+        try:
+            # Validate required fields
+            required_fields = ['username', 'email', 'password1', 'password2', 'first_name', 'last_name']
+            if not all(request.POST.get(field) for field in required_fields):
+                messages.error(request, 'Please fill in all required fields')
+                return render(request, 'admin/user_form.html')
+
+            if request.POST['password1'] != request.POST['password2']:
+                messages.error(request, 'Passwords do not match')
+                return render(request, 'admin/user_form.html')
+
+            # Create user
+            user = User.objects.create_user(
+                username=request.POST['username'],
+                email=request.POST['email'],
+                password=request.POST['password1'],
+                first_name=request.POST['first_name'],
+                last_name=request.POST['last_name']
+            )
+
+            # Set admin status if selected
+            if request.POST.get('is_superuser'):
+                user.is_superuser = True
+                user.is_staff = True
+                user.save()
+
+            messages.success(request, f'User "{user.username}" created successfully')
+            return redirect('admin_users')
+
+        except Exception as e:
+            messages.error(request, f'Error creating user: {str(e)}')
+            return render(request, 'admin/user_form.html')
+
+    return render(request, 'admin/user_form.html')
+
+@user_passes_test(is_admin)
+def admin_user_delete(request, pk):
+    if request.method == 'DELETE':
+        try:
+            user = get_object_or_404(User, pk=pk)
+            if user == request.user:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'You cannot delete your own account'
+                }, status=400)
+            username = user.username
+            user.delete()
+            return JsonResponse({
+                'success': True,
+                'message': f'User "{username}" deleted successfully'
+            })
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': str(e)
+            }, status=500)
+    return JsonResponse({
+        'success': False,
+        'message': 'Invalid request method'
+    }, status=400)
 
 @user_passes_test(is_admin)
 def admin_products(request):
@@ -534,26 +637,31 @@ def admin_product_edit(request, pk):
     # GET request - show form with product data
     return render(request, 'admin/product_form.html', {'product': product})
 
+from django.views.decorators.http import require_POST
+from django.contrib.auth.decorators import user_passes_test
+
+
+@require_POST
 @user_passes_test(is_admin)
-def admin_product_delete(request, pk):
-    if request.method == 'DELETE':
-        try:
-            product = get_object_or_404(Product, pk=pk)
-            product_name = product.name
-            product.delete()
-            return JsonResponse({
-                'success': True,
-                'message': f'Product "{product_name}" deleted successfully'
-            })
-        except Exception as e:
-            return JsonResponse({
-                'success': False,
-                'message': str(e)
-            }, status=500)
-    return JsonResponse({
-        'success': False,
-        'message': 'Invalid request method'
-    }, status=400)
+def admin_product_delete_view(request, product_id):
+    try:
+        product = Product.objects.get(id=product_id)
+        product_name = product.name
+        product.delete()
+        return JsonResponse({
+            'success': True,
+            'message': f'Product "{product_name}" has been deleted successfully.'
+        })
+    except Product.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'message': 'Product not found'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        }, status=500)
 
 
 @user_passes_test(is_admin)
@@ -582,9 +690,17 @@ def admin_orders(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
-    # Get statistics
+    # Get daily statistics
     today = timezone.now().date()
     todays_orders = Order.objects.filter(created_at__date=today)
+    
+    # Get monthly statistics
+    first_day_of_month = today.replace(day=1)
+    monthly_orders = Order.objects.filter(created_at__date__gte=first_day_of_month).count()
+    monthly_sales = Order.objects.filter(
+        created_at__date__gte=first_day_of_month,
+        payment_status='completed'
+    ).aggregate(total=Sum('total_amount'))['total'] or 0
     
     context = {
         'page_obj': page_obj,
@@ -593,7 +709,22 @@ def admin_orders(request):
         'total_orders': todays_orders.count(),
         'total_sales': todays_orders.filter(payment_status='completed').aggregate(
             total=Sum('total_amount'))['total'] or 0,
+        'monthly_orders': monthly_orders,
+        'monthly_sales': monthly_sales,
+        'order_statuses': Order.ORDER_STATUS,
         'pending_orders': todays_orders.filter(status='pending').count(),
-        'order_statuses': Order.ORDER_STATUS
     }
     return render(request, 'admin/orders.html', context)
+
+@user_passes_test(is_admin)
+def update_order_status(request, order_id):
+    if request.method == 'POST':
+        order = get_object_or_404(Order, id=order_id)
+        new_status = request.POST.get('status')
+        if new_status in dict(Order.ORDER_STATUS):
+            order.status = new_status
+            order.save()
+            messages.success(request, f'Order #{order.id} status updated successfully')
+        else:
+            messages.error(request, 'Invalid status')
+    return redirect('admin_orders')

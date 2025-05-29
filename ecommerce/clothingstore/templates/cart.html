@@ -4,10 +4,41 @@
 
 {% block content %}
 <div class="container py-5">
-    <h2 class="mb-4">Shopping Cart</h2>
+    <div class="d-flex align-items-center mb-2">
+        <i class="fas fa-shopping-cart me-3" style="font-size: 2.5rem; color: #6a3ea1;"></i>
+        <h1 style="font-weight: 700;">Shopping Cart</h1>
+    </div>
+    <hr class="mb-4" style="border-color: #6a3ea1; opacity: 0.3;">
+
     <form id="cart-form" action="{% url 'checkout' %}" method="POST">
         {% csrf_token %}
         <div class="row">
+            <!-- Moved Order Summary to Left Column -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="mb-3">Order Summary</h4>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Subtotal</span>
+                            <span id="subtotal">${{ subtotal }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Shipping</span>
+                            <span>$0.00</span>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between mb-3">
+                            <strong>Total</strong>
+                            <strong id="total">${{ total }}</strong>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary checkout-btn">Proceed to Checkout</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cart Items Moved to Right Column -->
             <div class="col-md-8">
                 <div class="card">
                     <div class="card-body">
@@ -44,29 +75,6 @@
                         {% else %}
                             <p class="text-center mb-0">Your cart is empty.</p>
                         {% endif %}
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h4 class="mb-3">Order Summary</h4>
-                        <div class="d-flex justify-content-between mb-2">
-                            <span>Subtotal</span>
-                            <span id="subtotal">${{ subtotal }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between mb-2">
-                            <span>Shipping</span>
-                            <span>$0.00</span>
-                        </div>
-                        <hr>
-                        <div class="d-flex justify-content-between mb-3">
-                            <strong>Total</strong>
-                            <strong id="total">${{ total }}</strong>
-                        </div>
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary checkout-btn">Proceed to Checkout</button>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -209,4 +217,13 @@ document.querySelectorAll('.item-checkbox').forEach(checkbox => {
 // Initial update of order summary
 updateOrderSummary();
 </script>
+<style>
+    /* Add more spacing from navbar and footer */
+    .container.py-5 {
+        min-height: calc(100vh - 400px); /* Ensures content doesn't crowd footer */
+        padding-top: 4rem !important;    /* More space below navbar */
+        padding-bottom: 10rem !important; /* More space above footer */
+        margin-bottom: 2rem;             /* Additional gap before footer */
+    }
+</style>
 {% endblock %}

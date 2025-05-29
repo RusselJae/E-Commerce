@@ -14,50 +14,111 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <style>
+        :root {
+            --primary-violet: #6a3ea1;
+            --secondary-violet: #9f8ac1;
+            --light-violet: #d7cee6;
+            --dark-violet: #472a6b;
+        }
+
         body {
-            background-color: #f8f9fa;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            background-image: url("{% static 'images/background.avif' %}");
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            
         }
 
         .auth-container {
             flex: 1;
+            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 2rem;
+            background: transparent;
+            box-shadow: none;
             padding: 2rem 0;
         }
 
-        .auth-card {
-            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-            border: none;
-            border-radius: 1rem;
+        .auth-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
+            height: 100%;
+            background: linear-gradient(to right,
+                    rgba(106, 62, 161, 0.9) 0%,
+                    rgba(106, 62, 161, 0.7) 50%,
+                    rgba(106, 62, 161, 0.4) 80%,
+                    rgba(106, 62, 161, 0) 100%
+                );
         }
 
-        .auth-header {
-            padding: 2rem 1rem;
-            text-align: center;
-            border-bottom: 1px solid #dee2e6;
+        .auth-content {
+            position: relative;
+            width: 600px;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
+            z-index: 2;
         }
 
         .brand-logo {
             text-align: center;
-            margin-bottom: 1.5rem;
+            margin-bottom: -30px;
+            margin-top: -15px
         }
 
-        .brand-logo i {
-            font-size: 2.5rem;
-            color: #3498db;
-            margin-bottom: 1rem;
+        .brand-logo img {
+            height: 100px;
+            margin-bottom: 0.5rem;
+            filter: none;
         }
 
-        .brand-name {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #2c3e50;
-            margin: 0;
+        .auth-card {
+            background: transparent;
+            border: none;
+            box-shadow: none;
+        }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .auth-header h2 {
+            color: var(--primary-violet);
+            font-weight: 600;
+        }
+
+        .form-control {
+            padding: 0.5rem 1rem;
+            border: 2px solid var(--light-violet);
+            height: calc(2.3rem + 2px);
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-violet);
+            box-shadow: 0 0 0 0.2rem rgba(106, 62, 161, 0.25);
+        }
+
+        .btn-primary {
+            background-color: var(--primary-violet);
+            border-color: var(--primary-violet);
+            border-radius: 10px;
+            padding: 0.5rem 1.5rem;
+            font-weight: 500;
+            height: calc(2.5rem + 2px);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--dark-violet);
+            border-color: var(--dark-violet);
         }
 
         .auth-error {
@@ -65,7 +126,7 @@
             border: 1px solid #ef4444;
             color: #b91c1c;
             padding: 0.75rem;
-            border-radius: 0.5rem;
+            border-radius: 10px;
             margin-bottom: 1rem;
             font-size: 0.875rem;
         }
@@ -75,33 +136,62 @@
             width: 600px;
             max-width: 100%;
         }
+
+        @media (max-width: 768px) {
+            .auth-container {
+                justify-content: center;
+                padding: 1rem;
+            }
+
+            .auth-content {
+                width: 100%;
+                max-width: 400px;
+                margin-right: 0;
+            }
+
+            .auth-overlay {
+                background: linear-gradient(to bottom,
+                    rgba(106, 62, 161, 0.9) 0%,
+                    rgba(106, 62, 161, 0.7) 50%,
+                    rgba(106, 62, 161, 0.4) 100%
+                );
+            }
+        }
+
+        /* Add password field styling */
+        .password-field {
+            position: relative;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: var(--primary-violet);
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+
+        .password-toggle:hover {
+            opacity: 1;
+        }
     </style>
 </head>
 
 <body>
-    <!-- Main Content -->
+    <div class="auth-overlay"></div>
     <div class="auth-container">
-        <div class="container">
-            <div class="row justify-content-center">
-                <div class="col-md-5">
-                    <div class="brand-logo">
-                        <a class="navbar-brand" href="{% url 'home' %}">
-                            <img src="{% static 'images/logo.png' %}" alt="Style Lab" height="300px"
-                                style="max-width: 200px; object-fit: contain; margin: -100px 0px;">
-                        </a>
-                    </div>
-                    {% block content %}{% endblock %}
-                </div>
+        <div class="auth-content">
+            <div class="brand-logo">
+                <a href="{% url 'home' %}">
+                    <img src="{% static 'images/logo.png' %}" alt="Style Lab">
+                </a>
             </div>
+            {% block content %}{% endblock %}
         </div>
     </div>
-
-    <!-- Simple Footer -->
-    <footer class="py-3 bg-white border-top">
-        <div class="container text-center">
-            <p class="mb-0">&copy; 2025 Style Lab. All rights reserved.</p>
-        </div>
-    </footer>
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

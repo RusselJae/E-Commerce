@@ -31,11 +31,14 @@ urlpatterns = [
     path('custom-admin/products/', views.admin_products, name='admin_products'),
     path('custom-admin/products/create/', views.admin_product_create, name='admin_product_create'),
     path('custom-admin/products/<int:pk>/edit/', views.admin_product_edit, name='admin_product_edit'),
-    path('custom-admin/products/<int:pk>/delete/', views.admin_product_delete, name='admin_product_delete'),
+    path('custom-admin/products/<int:product_id>/delete/', views.admin_product_delete_view, name='admin_product_delete'),
     path('custom-admin/users/', views.admin_users, name='admin_users'),
+    path('custom-admin/users/create/', views.admin_user_create, name='admin_user_create'),
+    path('custom-admin/users/<int:pk>/delete/', views.admin_user_delete, name='admin_user_delete'),
     path('custom-admin/users/<int:pk>/edit/', views.admin_user_edit, name='admin_user_edit'),
     path('custom-admin/logout/', LogoutView.as_view(next_page='login'), name='admin_logout'),
     path('custom-admin/orders/', views.admin_orders, name='admin_orders'),
+    path('custom-admin/orders/<int:order_id>/update-status/', views.update_order_status, name='update_order_status'),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 if settings.DEBUG:
