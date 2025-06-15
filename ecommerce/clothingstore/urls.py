@@ -22,6 +22,7 @@ urlpatterns = [
     path('orders/history/', views.order_history, name='order_history'),
     path('order/receipt/<int:order_id>/', views.order_receipt, name='order_receipt'),
     path('account/', views.account_settings, name='account_settings'),
+    path('account/change-password/', views.change_password, name='change_password'),
     path('logout/', views.logout_view, name='logout'),
     path('contact/', views.contact, name='contact'),
     path('custom-admin/logout/', views.logout_view, name='admin_logout'),
@@ -39,6 +40,8 @@ urlpatterns = [
     path('custom-admin/logout/', LogoutView.as_view(next_page='login'), name='admin_logout'),
     path('custom-admin/orders/', views.admin_orders, name='admin_orders'),
     path('custom-admin/orders/<int:order_id>/update-status/', views.update_order_status, name='update_order_status'),
+    path('custom-admin/orders/<int:order_id>/delete/', views.admin_order_delete, name='admin_order_delete'),
+    path('cancel-order/<int:order_id>/', views.cancel_order, name='cancel_order'),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 if settings.DEBUG:

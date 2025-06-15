@@ -12,6 +12,8 @@
                 <h2 class="mt-3">Payment Successful!</h2>
                 <p class="lead">Your order has been processed</p>
                 <p>Transaction ID: {{ order.payment_id }}</p>
+                <p>Order Number: #{{ order.id }}</p>
+                <p>Total Amount: ₱{{ order.total_amount }}</p>
             </div>
 
             <div class="row mb-4">

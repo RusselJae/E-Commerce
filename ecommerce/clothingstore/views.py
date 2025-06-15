@@ -25,6 +25,7 @@ from django.conf import settings
 from django.core.paginator import Paginator
 from .forms import CustomUserCreationForm
 from django.db import models
+from django.contrib.auth import update_session_auth_hash
 
 #user authentication views
 
@@ -81,9 +82,9 @@ def product_list(request):
         'clothing_types': [('all', 'All Types')] + list(Product.CLOTHING_TYPE_CHOICES),
         'price_ranges': [
             ('all', 'All Prices'),
-            ('under_50', 'Under $50'), 
-            ('50_100', '$50 - $100'),
-            ('over_100', 'Over $100')
+            ('under_50', 'Under ₱50'), 
+            ('50_100', '₱50 - ₱100'),
+            ('over_100', 'Over ₱100')
         ]
     }
     return render(request, 'product_list.html', context)
@@ -134,11 +135,20 @@ def cart_view(request):
     subtotal = sum(item.get_total() for item in cart_items)
     total = subtotal  # Add shipping/tax calculation if needed
     
+    # Get the buy now item ID from session
+    buy_now_item_id = request.session.get('buy_now_item_id')
+    
     context = {
         'cart_items': cart_items,
         'subtotal': subtotal,
         'total': total,
+        'buy_now_item_id': buy_now_item_id
     }
+    
+    # Clear the buy now item ID from session after using it
+    if 'buy_now_item_id' in request.session:
+        del request.session['buy_now_item_id']
+    
     return render(request, 'cart.html', context)
 
 @login_required
@@ -324,46 +334,70 @@ def account_settings(request):
 
 @login_required
 def order_history(request):
-    orders = Order.objects.filter(user=request.user).order_by('-created_at')
+    orders = Order.objects.filter(user=request.user)
+    
+    # Handle search
+    search_query = request.GET.get('search', '')
+    if search_query:
+        orders = orders.filter(
+            models.Q(id__icontains=search_query) |
+            models.Q(items__product__name__icontains=search_query)
+        ).distinct()
+    
+    # Handle status filter
+    status_filter = request.GET.get('status', '')
+    if status_filter:
+        orders = orders.filter(status=status_filter)
+    
+    # Order by latest first
+    orders = orders.order_by('-created_at')
+    
     return render(request, 'order_history.html', {'orders': orders})
 
 @login_required
 def add_to_cart(request, product_id):
-    product = get_object_or_404(Product, id=product_id)
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            quantity = int(data.get('quantity', 1))
+            is_buy_now = data.get('is_buy_now', False)
+            
+            product = get_object_or_404(Product, id=product_id)
+            
+            # Validate quantity against stock
+            if quantity > product.stock:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Not enough stock available'
+                })
+            
+            # Get or create cart item
+            cart_item, created = CartItem.objects.get_or_create(
+                user=request.user,
+                product=product,
+                defaults={'quantity': quantity}
+            )
+            
+            if not created:
+                cart_item.quantity = quantity
+                cart_item.save()
+            
+            # If this is a Buy Now action, store the cart item ID in session
+            if is_buy_now:
+                request.session['buy_now_item_id'] = cart_item.id
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Product added to cart successfully'
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': str(e)
+            })
     
-    # Get quantity from request body
-    try:
-        data = json.loads(request.body)
-        quantity = int(data.get('quantity', 1))
-    except:
-        quantity = 1
-    
-    # Validate quantity against stock
-    if quantity > product.stock:
-        return JsonResponse({
-            'success': False,
-            'message': 'Not enough stock available'
-        })
-    
-    cart_item, created = CartItem.objects.get_or_create(
-        user=request.user,
-        product=product
-    )
-    
-    if created:
-        cart_item.quantity = quantity
-    else:
-        cart_item.quantity += quantity
-        
-    # Check if total quantity exceeds stock
-    if cart_item.quantity > product.stock:
-        return JsonResponse({
-            'success': False,
-            'message': 'Not enough stock available'
-        })
-        
-    cart_item.save()
-    return JsonResponse({'success': True})
+    return JsonResponse({'success': False})
 
 @login_required
 def remove_from_cart(request, item_id):
@@ -371,13 +405,72 @@ def remove_from_cart(request, item_id):
     cart_item.delete()
     return JsonResponse({'success': True})
 
+@login_required
+@require_POST
+def cancel_order(request, order_id):
+    try:
+        order = get_object_or_404(Order, id=order_id, user=request.user)
+        
+        # Only allow cancellation of pending orders
+        if order.status != 'pending':
+            return JsonResponse({
+                'success': False,
+                'message': 'Only pending orders can be cancelled'
+            })
+        
+        # Update order status to cancelled
+        order.status = 'cancelled'
+        order.save()
+        
+        # Restore product stock
+        for item in order.items.all():
+            product = item.product
+            product.stock += item.quantity
+            product.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Order cancelled successfully'
+        })
+    except Order.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'message': 'Order not found'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        }, status=500)
 
-
-
+@login_required
+def change_password(request):
+    if request.method == 'POST':
+        current_password = request.POST.get('current_password')
+        new_password = request.POST.get('new_password')
+        confirm_password = request.POST.get('confirm_password')
+        
+        # Verify current password
+        if not request.user.check_password(current_password):
+            messages.error(request, 'Current password is incorrect')
+            return redirect('account_settings')
+        
+        # Check if new passwords match
+        if new_password != confirm_password:
+            messages.error(request, 'New passwords do not match')
+            return redirect('account_settings')
+        
+        # Change password
+        request.user.set_password(new_password)
+        request.user.save()
+        
+        # Update session to prevent logout
+        update_session_auth_hash(request, request.user)
+        
+        messages.success(request, 'Password changed successfully')
+        return redirect('account_settings')
     
-
-
-
+    return redirect('account_settings')
 
 #admin interface views
 
@@ -504,29 +597,26 @@ def admin_user_create(request):
 
 @user_passes_test(is_admin)
 def admin_user_delete(request, pk):
-    if request.method == 'DELETE':
+    if request.method == 'POST':
         try:
-            user = get_object_or_404(User, pk=pk)
-            if user == request.user:
+            user = User.objects.get(pk=pk)
+            # Prevent deleting the last admin
+            if user.is_superuser and User.objects.filter(is_superuser=True).count() <= 1:
                 return JsonResponse({
                     'success': False,
-                    'message': 'You cannot delete your own account'
-                }, status=400)
-            username = user.username
+                    'message': 'Cannot delete the last admin user'
+                })
             user.delete()
-            return JsonResponse({
-                'success': True,
-                'message': f'User "{username}" deleted successfully'
-            })
-        except Exception as e:
+            return JsonResponse({'success': True})
+        except User.DoesNotExist:
             return JsonResponse({
                 'success': False,
-                'message': str(e)
-            }, status=500)
+                'message': 'User not found'
+            })
     return JsonResponse({
         'success': False,
         'message': 'Invalid request method'
-    }, status=400)
+    })
 
 @user_passes_test(is_admin)
 def admin_products(request):
@@ -728,3 +818,20 @@ def update_order_status(request, order_id):
         else:
             messages.error(request, 'Invalid status')
     return redirect('admin_orders')
+
+@user_passes_test(is_admin)
+def admin_order_delete(request, order_id):
+    if request.method == 'POST':
+        try:
+            order = Order.objects.get(id=order_id)
+            order.delete()
+            return JsonResponse({'success': True})
+        except Order.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'message': 'Order not found'
+            })
+    return JsonResponse({
+        'success': False,
+        'message': 'Invalid request method'
+    })

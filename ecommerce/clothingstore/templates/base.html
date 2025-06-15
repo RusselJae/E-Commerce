@@ -15,7 +15,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Modern E-commerce Styling with Violet Theme */
+        /* Modern E-commerce Styling with Grey Theme */
         :root {
             --primary-violet: #6a3ea1;
             --secondary-violet: #9f8ac1;
@@ -34,7 +34,7 @@
 
         /* Navbar Styling */
         .navbar {
-            background-color: var(--primary-violet) !important;
+            background-color: white !important;
             padding: 1rem 0;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
@@ -42,11 +42,11 @@
         .navbar-brand {
             font-weight: bold;
             font-size: 1.5rem;
-            color: white !important;
+            color: var(--text-color) !important;
         }
 
         .nav-link {
-            color: rgba(255, 255, 255, 0.9) !important;
+            color: var(--text-color) !important;
             transition: all 0.3s ease;
             padding: 0.5rem 1rem !important;
             margin: 0 0.2rem;
@@ -56,50 +56,45 @@
 
         .nav-link i {
             margin-right: 8px;
-            color: white !important;
+            color: var(--text-color) !important;
         }
 
         .nav-link:hover {
-            background-color: var(--dark-violet);
-            color: white !important;
+            background-color: var(--light-violet);
+            color: var(--text-color) !important;
         }
 
         .nav-link.active {
-            background-color: var(--dark-violet);
-            color: white !important;
+            background-color: var(--light-violet);
+            color: var(--text-color) !important;
         }
 
         /* Dropdown Styling */
         .dropdown-menu {
-            background-color: var(--light-violet);
-            border: none;
+            background-color: white;
+            border: 1px solid rgba(0, 0, 0, 0.1);
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
 
         .dropdown-item {
-            color: var(--dark-violet);
+            color: var(--text-color);
             padding: 0.7rem 1.5rem;
             transition: all 0.2s ease;
         }
 
-        .dropdown-item i {
-            margin-right: 8px;
-            width: 20px;
-            text-align: center;
-        }
-
         .dropdown-item:hover {
-            background-color: var(--secondary-violet);
-            color: white;
+            background-color: var(--light-violet);
+            color: var(--text-color);
             transform: translateX(5px);
         }
 
         /* Footer Styling */
         footer {
-            background-color: var(--dark-violet);
-            color: white;
+            background-color: white !important;
+            color: var(--text-color);
             padding: 2rem 0;
             margin-top: auto;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
         }
 
         .footer-links {
@@ -107,14 +102,23 @@
             padding: 0;
         }
 
+        footer h1, h2, h3, h4, h5, h6 {
+            color: #000000 !important;
+        }
+
+        footer button {
+            background-color: #000000;
+            color: white;
+        }
+
         .footer-links li a {
-            color: rgba(255, 255, 255, 0.8);
+            color: var(--text-color);
             text-decoration: none;
             transition: color 0.3s ease;
         }
 
         .footer-links li a:hover {
-            color: var(--light-violet);
+            color: var(--primary-violet);
         }
 
         .social-links a {
@@ -124,14 +128,15 @@
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
+            background: #cfcfcf;
+            color: var(--text-color);
             margin: 0 0.5rem;
             transition: all 0.3s ease;
         }
 
         .social-links a:hover {
-            background: var(--secondary-violet);
+            background: var(--primary-dark);
+            color: white;
             transform: translateY(-3px);
         }
 
@@ -186,7 +191,7 @@
         <div class="container">
             <a class="navbar-brand" href="{% url 'home' %}">
                 <img src="{% static 'images/logo.png' %}" alt="Style Lab" height="120px" 
-                     style="max-width: 200px; object-fit: contain; margin: -50px 0px; filter: invert(1);">
+                     style="max-width: 200px; object-fit: contain; margin: -50px 0px;">
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -210,6 +215,9 @@
                             <a class="nav-link" href="{% url 'home' %}#contact"><i class="fas fa-envelope"></i> Contact</a>
                         {% endif %}
                     </li>
+                </ul>
+                <ul class="navbar-nav">
+                    {% if user.is_authenticated %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button"
                             data-bs-toggle="dropdown">
@@ -240,9 +248,6 @@
                             <li><a class="dropdown-item" href="{% url 'product_list' %}">All Types</a></li>
                         </ul>
                     </li>
-                </ul>
-                <ul class="navbar-nav">
-                    {% if user.is_authenticated %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
                             data-bs-toggle="dropdown">
@@ -261,11 +266,41 @@
                         </ul>
                     </li>
                     {% else %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button"
+                            data-bs-toggle="dropdown">
+                            <i class="fas fa-tags"></i> Categories
+                        </a>
+                        <ul class="dropdown-menu">
+                            {% for value, label in categories %}
+                            <li><a class="dropdown-item" href="{% url 'product_list' %}?category={{ value }}">{{ label }}</a></li>
+                            {% endfor %}
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li><a class="dropdown-item" href="{% url 'product_list' %}">All Categories</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="clothingTypeDropdown" role="button"
+                            data-bs-toggle="dropdown">
+                            <i class="fas fa-tshirt"></i> Clothing Types
+                        </a>
+                        <ul class="dropdown-menu">
+                            {% for value, label in clothing_types %}
+                            <li><a class="dropdown-item" href="{% url 'product_list' %}?clothing_type={{ value }}">{{ label }}</a></li>
+                            {% endfor %}
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li><a class="dropdown-item" href="{% url 'product_list' %}">All Types</a></li>
+                        </ul>
+                    </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'login' %}">Login</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'register' %}">Register</a>
+                        <a class="nav-link btn btn-dark" href="{% url 'register' %}" style="background-color: #000000; color: white !important; padding: 8px 20px; border-radius: 5px;">Get Started</a>
                     </li>
                     {% endif %}
                 </ul>
@@ -275,6 +310,7 @@
 
     <!-- Main Content -->
     <main class="container mt-5 pt-4">
+        {% include 'notifications.html' %}
         {% block content %}
         <div data-aos="fade-up" data-aos-duration="1000">
             <!-- Your content -->
@@ -283,7 +319,7 @@
     </main>
 
     <!-- Scroll to Top Button -->
-    <div class="scroll-top">
+    <div class="scroll-top" style="background-color: #000000; color: #ffffff !important;">
         <i class="fas fa-arrow-up"></i>
     </div>
 
@@ -330,13 +366,13 @@
                     <form class="mb-3">
                         <div class="input-group">
                             <input type="email" class="form-control" placeholder="Enter your email">
-                            <button class="btn btn-primary" type="submit">Subscribe</button>
+                            <button class="btn btn-primary" type="submit" style="background-color: #000000 !important; color: #ffffff;">Subscribe</button>
                         </div>
                     </form>
                     <div class="contact-info text-dark">
-                        <p class="mb-2"><i class="fas fa-phone me-2"></i> (123) 456-7890</p>
-                        <p class="mb-2"><i class="fas fa-envelope me-2"></i> info@fashionstore.com</p>
-                        <p class="mb-0"><i class="fas fa-map-marker-alt me-2"></i> 123 Fashion Street, NY 10001</p>
+                        <p class="mb-2"><i class="fas fa-phone me-2" style="color: #000000 !important;"></i> (123) 456-7890</p>
+                        <p class="mb-2"><i class="fas fa-envelope me-2" style="color: #000000 !important;"></i> info@fashionstore.com</p>
+                        <p class="mb-0"><i class="fas fa-map-marker-alt me-2" style="color: #000000 !important;"></i> 123 Fashion Street, NY 10001</p>
                     </div>
                 </div>
             </div>

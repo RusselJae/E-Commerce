@@ -3,12 +3,41 @@
 {% block title %}Order History - Fashion Store{% endblock %}
 
 {% block content %}
+{% csrf_token %}
 <div class="container py-5">
-    <div class="d-flex align-items-center mb-2">
+    <!-- Centered Header with Pink Icon -->
+    <div class="d-flex align-items-center mb-2 justify-content-center">
         <i class="fas fa-history me-3" style="font-size: 2.5rem; color: #6a3ea1;"></i>
         <h1 style="font-weight: 700;">Order History</h1>
     </div>
-    <hr class="mb-4" style="border-color: #6a3ea1; opacity: 0.3;">
+    <hr class="mb-4" style="border-color: var(--dark-violet); opacity: 0.3;">
+
+    <!-- Search and Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row">
+                <div class="col-md-6 mb-3">
+                    <div class="input-group">
+                        <input type="text" name="search" class="form-control" 
+                               placeholder="Search orders..." 
+                               value="{{ request.GET.search|default:'' }}">
+                        <button class="btn btn-primary" type="submit" style="background-color: #6a3ea1; border: none;">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <select name="status" class="form-select" onchange="this.form.submit()" style="border: none;">
+                        <option value="">All Orders</option>
+                        <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="delivered" {% if request.GET.status == 'delivered' %}selected{% endif %}>Delivered</option>
+                        <option value="cancelled" {% if request.GET.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                        <option value="refunded" {% if request.GET.status == 'refunded' %}selected{% endif %}>Refunded</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+    </div>
 
     {% if orders %}
         {% for order in orders %}
@@ -16,15 +45,24 @@
             <div class="card-header">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h5 class="mb-0">Order #{{ order.id }}</h5>
-                        <small class="text-muted">{{ order.created_at|date:"F d, Y" }}</small>
+                        <h5 class="mb-0" style="color: #ffffff !important;">Order #{{ order.id }}</h5>
+                        <small class="text-muted" style="color: #ffffff !important;">{{ order.created_at|date:"F d, Y" }}</small>
                     </div>
-                    <span class="badge {% if order.status == 'delivered' %}bg-success
-                        {% elif order.status == 'pending' %}bg-warning
-                        {% elif order.status == 'cancelled' %}bg-danger
-                        {% else %}bg-info{% endif %}">
-                        {{ order.get_status_display }}
-                    </span>
+                    <div>
+                        <span class="badge {% if order.status == 'delivered' %}bg-success
+                            {% elif order.status == 'pending' %}bg-warning
+                            {% elif order.status == 'cancelled' %}bg-danger
+                            {% else %}bg-info{% endif %}">
+                            {{ order.get_status_display }}
+                        </span>
+                        {% if order.status == 'pending' %}
+                        <button type="button" 
+                                class="btn btn-sm btn-danger ms-2 cancel-order-btn" 
+                                data-order-id="{{ order.id }}">
+                            Cancel Order
+                        </button>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
             <div class="card-body">
@@ -42,16 +80,16 @@
                             {% for item in order.items.all %}
                             <tr>
                                 <td>{{ item.product.name }}</td>
-                                <td>${{ item.price }}</td>
+                                <td>₱{{ item.price }}</td>
                                 <td>{{ item.quantity }}</td>
-                                <td>${{ item.get_total }}</td>
+                                <td>₱{{ item.get_total }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
                         <tfoot>
                             <tr>
                                 <td colspan="3" class="text-end"><strong>Total Amount:</strong></td>
-                                <td><strong>${{ order.total_amount }}</strong></td>
+                                <td><strong>₱{{ order.total_amount }}</strong></td>
                             </tr>
                         </tfoot>
                     </table>
@@ -60,16 +98,107 @@
         </div>
         {% endfor %}
     {% else %}
-        <div class="alert alert-info">You haven't made any orders yet.</div>
+        <div class="alert alert-info">No orders found.</div>
     {% endif %}
 </div>
+
+
 <style>
-    /* Add more spacing from navbar and footer */
     .container.py-5 {
-        min-height: calc(100vh - 400px); /* Ensures content doesn't crowd footer */
-        padding-top: 4rem !important;    /* More space below navbar */
-        padding-bottom: 21rem !important; /* More space above footer */
-        margin-bottom: 2rem;             /* Additional gap before footer */
+        min-height: calc(100vh - 400px);
+        padding-top: 4rem !important;
+        padding-bottom: 4rem !important;
+    }
+
+    .card {
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .card-header {
+        background-color: #000000;
+        color: white;
+    }
+
+    .badge {
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem;
+    }
+
+    .form-select:focus, .form-control:focus {
+        border-color: #6a3ea1;
+        box-shadow: 0 0 0 0.2rem rgba(106, 62, 161, 0.25);
+    }
+
+    .btn-primary {
+        background-color: #6a3ea1;
+        border-color: #6a3ea1;
+    }
+
+    .btn-primary:hover {
+        background-color: #5a2e91;
+        border-color: #5a2e91;
     }
 </style>
+
+
+<script>
+// Function to show notification
+function showNotification(message, type = 'error') {
+    const notificationContainer = document.querySelector('.notification-container');
+    if (!notificationContainer) {
+        const container = document.createElement('div');
+        container.className = 'notification-container';
+        document.body.appendChild(container);
+    }
+
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.innerHTML = `
+        <div class="notification-content">
+            <i class="fas ${type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle'}"></i>
+            <span>${message}</span>
+        </div>
+        <button class="notification-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+
+    document.querySelector('.notification-container').appendChild(notification);
+
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease-out forwards';
+        setTimeout(() => notification.remove(), 300);
+    }, 5000);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.cancel-order-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const orderId = this.dataset.orderId;
+            if (confirm('Are you sure you want to cancel this order?')) {
+                fetch(`/cancel-order/${orderId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        showNotification('Failed to cancel order: ' + data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    showNotification('Error canceling order', 'error');
+                });
+            }
+        });
+    });
+});
+</script>
+
 {% endblock %}
